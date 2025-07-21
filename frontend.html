@@ -15,7 +15,6 @@
 <button id="logon" onclick="logon()">logon colton</button><br>
 <button id="logoff" onclick="logoff()">logoff colton</button><br>
 <button id="changepw" onclick="changepw()">change password colton</button><br>
-<button id="pull1" onclick="pull1()">pull flowerfield</button><br>
 
 <script>
 ROOT="http://localhost:8080";
@@ -89,18 +88,6 @@ async function logoff() {
 
 async function changepw() {
     var res = await fetch(`${ROOT}/api/users/colton`, {
-        method: "DELETE",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${document.getElementById("token").value}`
-        },
-    });
-    var json = await res.json();
-    await updresp(json, res.status);
-}
-
-async function pull1() {
-    var res = await fetch(`${ROOT}/api/gacha/banners/flowerfield/pull/1`, {
         method: "DELETE",
         headers: {
             "Content-Type": "application/json",
