@@ -1,0 +1,19 @@
+{
+    "flowerfield": {
+        "pull_cost": 1000,
+        "drops": [
+            {
+                "item": "Violet",
+                "one_in": 7,
+                "once": true,
+                "if_owned": false
+            },
+            {
+                "item": "Violet",
+                "one_in": 5,
+                "once": true,
+                "if_owned": false
+            }
+        ]
+    }
+}

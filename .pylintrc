@@ -1,0 +1,7 @@
+[FORMAT]
+max-line-length=80
+
+[MESSAGES CONTROL]
+disable=too-few-public-methods
+disable=import-error
+disable=unspecified-encoding

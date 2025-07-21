@@ -1,0 +1,15 @@
+{
+    "Violet": {
+        "type": "character",
+        "description": "genderfluid girlflux person with almost 0 motivation to do anything",
+        "abilities": {
+            "transition": {
+                "description": "swaps between the two states, euphoric and dysphoric"
+            },
+            "reflect": {
+                "description": "makes all notes unmissable, changing her state to euphoric and setting her motivation to 0"
+            }
+        },
+        "client-resource": "res://gameplay/characters/Violet/violet.tscn"
+    }
+}

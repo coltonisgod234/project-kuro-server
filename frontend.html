@@ -1,0 +1,113 @@
+<title>C00lgui</title>
+<p id="resp">responce</p>
+<p id="code">code</p>
+
+<label for="passwd">password</label>
+    <textarea id="passwd"></textarea>
+<br>
+
+<label for="token">token</label>
+    <textarea id="token"></textarea>
+<br>
+
+<button id="mkusr" onclick="mkusr()">create colton</button><br>
+<button id="rmusr" onclick="rmusr()">del colton</button><br>
+<button id="logon" onclick="logon()">logon colton</button><br>
+<button id="logoff" onclick="logoff()">logoff colton</button><br>
+<button id="changepw" onclick="changepw()">change password colton</button><br>
+<button id="pull1" onclick="pull1()">pull flowerfield</button><br>
+
+<script>
+ROOT="http://localhost:8080";
+async function updresp(dat, statuscode) {
+    document.getElementById("resp").textContent = JSON.stringify(dat);
+    document.getElementById("code").textContent = statuscode;
+}
+
+async function mkusr() {
+    var res = await fetch(`${ROOT}/api/users`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            "username": "colton",
+            "plaintext_password": document.getElementById("passwd").value
+        })
+    });
+    var json = await res.json();
+    await updresp(json, res.status);
+}
+
+async function rmusr() {
+    var res = await fetch(`${ROOT}/api/users/colton`, {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${document.getElementById("token").value}`
+        },
+        body: JSON.stringify({
+            "username": "colton",
+        })
+    });
+    var json = await res.json();
+    await updresp(json, res.status);
+}
+
+async function logon() {
+    var res = await fetch(`${ROOT}/api/users/colton/authenticate`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${document.getElementById("token").value}`
+        },
+        body: JSON.stringify({
+            "username": "colton",
+            "plaintext_password": document.getElementById("passwd").value
+        })
+    });
+    var dat = await res.json()
+    document.getElementById("token").value = dat.token;
+    await updresp(dat, res.status);
+}
+
+async function logoff() {
+    var res = await fetch(`${ROOT}/api/users/colton/authenticate`, {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${document.getElementById("token").value}`
+        },
+        body: JSON.stringify({
+            "username": "colton",
+            //"plaintext_password": document.getElementById("token").value
+        })
+    });
+    var json = await res.json();
+    await updresp(json, res.status);
+}
+
+async function changepw() {
+    var res = await fetch(`${ROOT}/api/users/colton`, {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${document.getElementById("token").value}`
+        },
+    });
+    var json = await res.json();
+    await updresp(json, res.status);
+}
+
+async function pull1() {
+    var res = await fetch(`${ROOT}/api/gacha/banners/flowerfield/pull/1`, {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${document.getElementById("token").value}`
+        },
+    });
+    var json = await res.json();
+    await updresp(json, res.status);
+}
+</script>
