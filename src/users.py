@@ -22,6 +22,13 @@ class User(db.Base):
     asahi = Column(Integer, default=0)
     items = relationship("UserItem", back_populates="user")
 
+    def as_dict(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "asahi": self.asahi,
+        }
+
 def get_user_or_rollback(username, session):
     '''
     gets the user.
@@ -33,7 +40,6 @@ def get_user_or_rollback(username, session):
             .one()
         return user
     except NoResultFound as e:
-        print("user does not exist")
         session.rollback()
         raise e
 

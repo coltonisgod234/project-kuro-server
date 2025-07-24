@@ -7,11 +7,16 @@ Base = declarative_base()
 
 DBURL = "sqlite:///primary.db"
 
+_engine = None
+
 def engine():
     '''
     get an Engine
     '''
-    return create_engine(DBURL)
+    if not _engine:
+        return create_engine(DBURL)
+    else:
+        return _engine
 
 def session():
     '''

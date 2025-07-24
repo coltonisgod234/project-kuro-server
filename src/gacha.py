@@ -3,7 +3,8 @@ gacha system
 '''
 # pylint: disable=unused-import
 # pylint: disable=too-few-public-methods
-from sqlalchemy import Column, Integer, String, Sequence, ForeignKey
+import random
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship, Session
 from . import db
 from . import utils
@@ -50,19 +51,27 @@ def grant(username: str, item_name: str, session: Session = None):
     )
 
     session.add(obj)
+    session.flush()  # ugly but it's gotta happen
+    return obj.id
 
 @utils.db_transaction
-def pull1(user: User, item: UserItem, banner_data: dict, session: Session = None) -> None:
+def pull1(user: User, banner_data: dict, session: Session = None):
     '''
     Pulls for an item on a banner
     '''
-    cost = banner_data["banner_cost"]
+    cost = banner_data["pull_cost"]
     if user.asahi < cost:
         raise NotEnoughAsahi
 
     user.asahi -= cost
-    grant(
+    drops = banner_data["drops"]
+    drop = random.choices(
+        drops,
+        weights = [e["weight"] for e in drops],
+        k = 1
+    )[0]
+    _id = grant(
         username = user.username,
-        item_name = item.name,
-        session = session
+        item_name = drop["item"]
     )
+    return _id, drop

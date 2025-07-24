@@ -15,9 +15,12 @@
 <button id="logon" onclick="logon()">logon colton</button><br>
 <button id="logoff" onclick="logoff()">logoff colton</button><br>
 <button id="changepw" onclick="changepw()">change password colton</button><br>
+<button id="pull1" onclick="pull1()">pull1</button><br>
+<button id="getasahi" onclick="getasahi()">get colton asahi</button><br>
+<button id="getitems" onclick="getitems()">get colton items</button><br>
 
 <script>
-ROOT="http://localhost:8080";
+ROOT="http://127.0.0.1:8080";
 async function updresp(dat, statuscode) {
     document.getElementById("resp").textContent = JSON.stringify(dat);
     document.getElementById("code").textContent = statuscode;
@@ -87,8 +90,44 @@ async function logoff() {
 }
 
 async function changepw() {
-    var res = await fetch(`${ROOT}/api/users/colton`, {
-        method: "DELETE",
+    var res = await fetch(`${ROOT}/api/users/colton/password`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${document.getElementById("token").value}`
+        },
+    });
+    var json = await res.json();
+    await updresp(json, res.status);
+}
+
+async function pull1() {
+    var res = await fetch(`${ROOT}/api/gacha/banners/flowerfield/pull/1`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${document.getElementById("token").value}`
+        },
+    });
+    var json = await res.json();
+    await updresp(json, res.status);
+}
+
+async function getasahi() {
+    var res = await fetch(`${ROOT}/api/users/colton/asahi`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${document.getElementById("token").value}`
+        },
+    });
+    var json = await res.json();
+    await updresp(json, res.status);
+}
+
+async function getitems() {
+    var res = await fetch(`${ROOT}/api/gacha/users/colton/items`, {
+        method: "GET",
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${document.getElementById("token").value}`

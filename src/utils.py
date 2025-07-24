@@ -64,7 +64,6 @@ def require_bearer(fn):
         if auth_header and auth_header.startswith("Bearer "):
             token = auth_header[len("Bearer "):].strip()
         else:
-            print("noauth")
             return {"error": "bad/no bearer token"}, 401
 
         return fn(
