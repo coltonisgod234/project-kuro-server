@@ -3,19 +3,21 @@ uhh
 '''
 # pylint: disable=unused-import
 from os import path
+from json import load
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from flask import Flask, request, send_file, send_from_directory
 from . import gacha
 from . import users
 from . import db
 from . import utils
-from json import load
+from . import charts
 from . import filters
 
 # Remember how I said I wanted to kill myself?
 PROJECT_ROOT = path.abspath(path.join(path.dirname(__file__), ".."))
 DATA_DIR = path.join(PROJECT_ROOT, "static")
 ASSETS_DIR = path.join(DATA_DIR, "assets")
+CHARTS_DIR = path.join(DATA_DIR, "charts")
 BANNERS_JSON_FILE = path.join(ASSETS_DIR, "banners.json")
 RESOURCES_JSON_FILE = path.join(ASSETS_DIR, "resources.json")
 
@@ -78,7 +80,7 @@ def api_index():
 @utils.require_bearer
 @utils.db_transaction
 @utils.tw(NoResultFound, {"error": "invalid bearer token"}, 401)
-def user_whoami(token: str = None, session: gacha.Session = None):
+def user_whoami(token: str = None, session = None):
     '''
     web API to list users in JSON format
     '''
@@ -94,7 +96,7 @@ def user_whoami(token: str = None, session: gacha.Session = None):
 
 @app.route("/api/users", methods=["GET"])
 @utils.db_transaction
-def query_users(session: gacha.Session = None):
+def query_users(session = None):
     '''
     web API to list users in JSON format
     '''
@@ -205,51 +207,88 @@ def change_password(username: str, token=None):
 @utils.db_transaction
 @utils.tw(NoResultFound, {"error": "user not found"}, 404)
 def get_asahi_user(username: str = None, session = None):
+    '''
+    get a user's asahi
+    '''
     user = session.query(users.User) \
         .where(users.User.username == username) \
         .one()
-    
+
     return {
         "username": user.username,
         "user_asahi": user.asahi
     }, 200
-        
+
 ###############################################################################
 ############ CHART STORAGE AND STUFF
 #
 # Requests
-# GET       /api/charts/<chart_uuid>/download
+# GET       /api/charts
+# GET       /api/charts/<chart_uuid>/tar
+#               ?attachment
+#
 # GET       /api/charts/<chart_uuid>
 ###############################################################################
 
-@app.route("/api/charts/<chart_uuid>/download", methods=["GET"])
-def download_chart(chart_uuid="0"):
+@app.route("/api/charts")
+@utils.db_transaction
+@utils.tw(NoResultFound, {"error": "no result found"}, 404)
+def get_charts(session = None):
     '''
-    downloads a chart
+    get a chart
     '''
-    mediapath = path.join(DATA_DIR, "charts/", chart_uuid)
+    data: dict = request.args
+    query = session.query(charts.Chart)
+    query = filters.comparisons("id", query, data, charts.Chart.id)
+    query = filters.comparisons("song_title", query, data,
+                                charts.Chart.song_title)
+    result = query.all()
+    return [obj.to_dict() for obj in result]
 
-    # check if someone is doing some non-Asahi approved shit (path traversal)
-    if not utils.is_safe_path_component(mediapath):
-        return {
-            "error": "Asahi doesn't approve of what you're doing, ******boy",
-            "If you're a user": "yeah you're not meant to see this page",
-            "If you're a hacker": "my security measures aren't the greatest.\
-                also there's no credit card info on my server so why would you\
-                give a fuck?",
-        }, 418
+@app.route("/api/charts/<chart_id>")
+@utils.db_transaction
+@utils.tw(NoResultFound, {"error": "no result found"}, 404)
+def get_chart(chart_id, session = None):
+    '''
+    get JSON info about a chart at a given URL
+    '''
+    obj = session.query(charts.Chart) \
+        .where(charts.Chart.id == chart_id) \
+        .one()
 
-    if not path.isfile(mediapath):
-        return {
-            "error": "Resource not found (did you type the right UUID?)",
-            "faulting_mediapath": mediapath,
-            "If you're a user": "this is a '404 not found' page"
-        }, 404
+    return obj.to_dict()
 
+@app.route("/api/charts/<chart_id>/zip", methods=["GET"])
+def download_chart(chart_id="0"):
+    '''
+    downloads/sends a chart
+    '''
+    mediapath = path.join(DATA_DIR, "charts/", chart_id)
+    utils.path_validate_abort(mediapath)
+
+    attachment = int(request.args.get("attachment", 0))  # fucked
     return send_file(
         mediapath,
-        as_attachment=True
+        as_attachment=bool(attachment),
+        mimetype="text/plain"
     )
+
+@app.route("/api/charts", methods=["POST"])
+def upload_chart():
+    '''
+    uploads a chart
+    '''
+    file = request.files.get("zip")
+    if file is None:
+        return {
+            "error": "no file"
+        }, 415
+
+    match file.content_type:
+        case "application/zip":
+            charts.upload_chart_zip(file, DATA_DIR)
+        case _:
+            return {"error": "bad file type"}, 415
 
 ###############################################################################
 ############ GACHA STUFF
@@ -264,15 +303,21 @@ def download_chart(chart_uuid="0"):
 ###############################################################################
 @app.route("/api/gacha/banners")
 def get_banners():
+    '''
+    returns the BANNERS_JSON_FILE (typically /static/assets/banners.json)
+    '''
     return send_file(BANNERS_JSON_FILE)
 
 @app.route("/api/gacha/banners/<string:banner>")
 @utils.tw(KeyError, {"error": "banner does not exist"}, 404)
 def get_banner(banner: str = None):
+    '''
+    get a given banner in the URL
+    '''
     data: dict = {}
     with open(BANNERS_JSON_FILE, mode="r", encoding="utf-8") as f:
         data = load(f)
-    
+
     return data[banner]
 
 @app.route("/api/gacha/banners/<string:banner>/pull/1", methods=["POST"])
@@ -282,6 +327,9 @@ def get_banner(banner: str = None):
 @utils.tw(KeyError, {"error": "banner does not exist"}, 404)
 @utils.tw(NoResultFound, {"error": "unauthorized"}, 401)
 def pull1(banner: str = None, token: str = None, session = None):
+    '''
+    preforms a single pull for the logged in user on a given banner
+    '''
     user = session.query(users.User) \
         .where(users.User.token == token) \
         .one()
@@ -300,6 +348,9 @@ def pull1(banner: str = None, token: str = None, session = None):
 @app.route("/api/gacha/users/<username>/items", methods=["GET"])
 @utils.db_transaction
 def get_items_list(username: str = None, session = None):
+    '''
+    gets the list of items a user owns
+    '''
     json = []
     items = session.query(gacha.UserItem) \
             .join(users.User) \
@@ -311,7 +362,7 @@ def get_items_list(username: str = None, session = None):
             "id": item.id,
             "name": item.name,
         })
-    
+
     return json, 200
 
 @app.route("/dev")

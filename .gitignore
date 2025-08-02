@@ -1,0 +1,24 @@
+# OS junk files
+[Tt]humbs.db
+*.DS_Store
+
+# common contributor setups
+*.db
+*primary.db
+
+.*
+!.gitignore
+!.pylintrc
+Cache
+chace
+__pycache__
+*Cache*
+
+# Project files
+Build/
+build/
+dist/
+Dist/
+
+# Office Temp Files
+~$*

@@ -7,8 +7,23 @@ import string
 from functools import wraps
 from uuid import uuid4
 import bcrypt
-from flask import request
+from flask import request, abort
 from . import db
+
+class UnauthorizedError(Exception): '''raised when an unauthorized action is preformed'''
+class BadPathError(Exception): '''raised when a path is bad'''
+BADPATHJSON = {
+            "error": "Asahi doesn't approve of what you're doing, ******boy",
+            "If you're a user": "yeah you're not meant to see this page",
+            "If you're a hacker": "my security measures aren't the greatest.\
+                also there's no credit card info on my server so why would you\
+                give a fuck?",
+        }
+
+NOTFOUNDJSON = {
+            "error": "Resource not found (did you type the right UUID?)",
+            "If you're a user": "this is a '404 not found' page"
+        }
 
 def encrypt(pw: bytes) -> bytes:
     '''
@@ -31,9 +46,9 @@ def random_str(l: int, charset=string.hexdigits):
         s += random.choice(charset)
     return s
 
-def gentoken():
+def unique() -> str:
     '''
-    generates a user token
+    algo to generate unique IDs
     '''
     return str(uuid4())
 
@@ -89,9 +104,6 @@ def db_transaction(fn):
                 raise e
     return wrapper
 
-class UnauthorizedError(Exception): '''raised when an unauthorized action is preformed'''
-class BadPathError(Exception): '''raised when a path is bad'''
-
 def is_safe_path_component(s: str) -> bool:
     '''
     Reject if any path traversal parts appear anywhere
@@ -132,3 +144,24 @@ def tw(exc, json, code):
                 return json, code
         return wrapper
     return decorate
+
+def raise_to_validate_path(mediapath):
+    # check if someone is doing some non-Asahi approved shit (path traversal)
+    if not is_safe_path_component(mediapath):
+        raise BadPathError
+    
+    if not os.path.isfile(mediapath):
+        raise FileNotFoundError
+
+    return mediapath
+
+def path_validate_abort(mediapath):
+    # makes raise_to_validate_path more convinient to use
+    try:
+        raise_to_validate_path(mediapath)
+    except BadPathError:
+        abort(418, BADPATHJSON)
+    except FileNotFoundError:
+        abort(404, NOTFOUNDJSON)
+
+    return mediapath

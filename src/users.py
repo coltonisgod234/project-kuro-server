@@ -84,7 +84,7 @@ def authenticate(username, plaintext_password, session=None):
     '''
     usr = get_user_or_rollback(username, session)
     ok = utils.check(plaintext_password.encode(), usr.password)
-    new_tok = change_token(username, utils.gentoken())
+    new_tok = change_token(username, utils.unique())
     if not ok:
         raise utils.UnauthorizedError()
 
